@@ -97,6 +97,27 @@ func (b *Board) AvailableMoves(tileId int) map[int]Move {
 			}
 		}
 	}
+
+	if tile.Piece == WhiteKing || tile.Piece == BlackKing {
+		for _, vec := range []Vector{N, S, E, W, N + E, N + W, S + E, S + W} {
+			currId := tileId + int(vec)
+			if currId < 0 || currId >= NumberOfTiles || ((vec == E || vec == N+E || vec == S+E) && currId%8 == 0) || ((vec == W || vec == N+W || vec == S+W) && currId%8 == 7) {
+				continue
+			}
+			if other := b.TileAt(currId).Piece.Color(); other != None && other != tile.Piece.Color() {
+				moves[currId] = Attack
+				continue
+			}
+			if b.TileAt(currId).Piece.Color() == tile.Piece.Color() {
+				continue
+			}
+			moves[currId] = Advance
+
+			if mod := currId % 8; mod == 0 || mod == 7 {
+				continue
+			}
+		}
+	}
 	return moves
 }
 
@@ -107,7 +128,11 @@ func (b *Board) TileAt(idx int) Tile {
 func (b *Board) Debug(activeId int) string {
 	var buffer bytes.Buffer
 
+	buffer.WriteRune('\n')
+
 	moves := b.AvailableMoves(activeId)
+	fmt.Fprintln(&buffer, moves)
+
 	for tileId, tile := range b.Tiles {
 		if tileId%8 == 0 {
 			fmt.Fprintf(&buffer, "%d\t", tileId)
@@ -115,9 +140,9 @@ func (b *Board) Debug(activeId int) string {
 
 		checkerIt := func(s string) string {
 			if tileId/8%2^tileId%2 == 0 {
-				return fmt.Sprintf("\033[49m%s\033[0m", s)
+				return fmt.Sprintf("\033[40m%s\033[0m", s)
 			}
-			return fmt.Sprintf("\033[100m%s\033[0m", s)
+			return fmt.Sprintf("\033[107m%s\033[0m", s)
 		}
 
 		if move, has := moves[tileId]; has {
