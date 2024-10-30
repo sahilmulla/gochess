@@ -1,8 +1,14 @@
 package chess
 
+import "fmt"
+
 type Piece struct {
 	Role
 	FirstMove bool
+}
+
+func (p Piece) String() string {
+	return fmt.Sprintf("firstmove:%t role:%v", p.FirstMove, p.Role)
 }
 
 func NewPiece(r Role) *Piece {

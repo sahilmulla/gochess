@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"log"
 )
 
 type Log struct {
@@ -12,10 +13,15 @@ type Log struct {
 	Team            Team
 }
 
+type EnPassantInfo struct {
+	PassingTileId int
+}
+
 type Board struct {
-	Tiles   []Tile
-	Next    Team
-	MoveLog []Log
+	Tiles         []Tile
+	Next          Team
+	MoveLog       []Log
+	enPassantInfo EnPassantInfo
 }
 
 func (b *Board) Move(from, to int) (*Role, error) {
@@ -27,7 +33,8 @@ func (b *Board) Move(from, to int) (*Role, error) {
 
 	moves := b.AvailableMoves(from)
 
-	if _, has := moves[to]; !has {
+	m, has := moves[to]
+	if !has {
 		return nil, errors.New("illegal move")
 	}
 
@@ -36,6 +43,14 @@ func (b *Board) Move(from, to int) (*Role, error) {
 	b.Tiles[to] = b.Tiles[from]
 
 	b.Tiles[from] = Tile{Piece: NewEmptyPiece()}
+
+	if m == PawnJump {
+		if b.Next == Black {
+			b.enPassantInfo.PassingTileId = to + int(N)
+		} else if b.Next == White {
+			b.enPassantInfo.PassingTileId = to + int(S)
+		}
+	}
 
 	toMove.FirstMove = false
 	b.MoveLog = append(b.MoveLog, Log{From: from, To: to, Moved: toMove.Role, Captured: captured.Role, Team: b.Next})
@@ -167,6 +182,7 @@ func (b *Board) AvailableMoves(tileId int) map[int]Move {
 	}
 
 	if tile.Piece.Role == BlackPawn {
+		skipJump := false
 		for _, vec := range []Vector{S, S + S, S + W, S + E} {
 			currId := tileId + int(vec)
 
@@ -175,10 +191,11 @@ func (b *Board) AvailableMoves(tileId int) map[int]Move {
 				(tileId%8 == 0 && vec == S+W) {
 				continue
 			}
-			if vec == S+S && !tile.Piece.FirstMove {
+			if vec == S+S && (skipJump || tileId/2 != 1 || b.TileAt(currId).Piece.Team() != None) {
 				continue
 			}
 			if vec == S && b.TileAt(currId).Piece.Team() != None {
+				skipJump = true
 				continue
 			}
 			if vec == S+E || vec == S+W {
@@ -187,7 +204,12 @@ func (b *Board) AvailableMoves(tileId int) map[int]Move {
 				}
 				continue
 			}
-			moves[currId] = Advance
+
+			if vec == S+S {
+				moves[currId] = PawnJump
+			} else {
+				moves[currId] = Advance
+			}
 
 			if mod := currId % 8; mod == 0 || mod == 7 {
 				continue
@@ -196,6 +218,7 @@ func (b *Board) AvailableMoves(tileId int) map[int]Move {
 	}
 
 	if tile.Piece.Role == WhitePawn {
+		skipJump := false
 		for _, vec := range []Vector{N, N + N, N + W, N + E} {
 			currId := tileId + int(vec)
 			if currId < 0 || currId >= NumberOfTiles ||
@@ -203,10 +226,11 @@ func (b *Board) AvailableMoves(tileId int) map[int]Move {
 				(tileId%8 == 0 && vec == N+W) {
 				continue
 			}
-			if vec == N+N && !tile.Piece.FirstMove {
+			if vec == N+N && (skipJump || tileId/8 != 6 || b.TileAt(currId).Piece.Team() != None) {
 				continue
 			}
 			if vec == N && b.TileAt(currId).Piece.Team() != None {
+				skipJump = true
 				continue
 			}
 			if vec == N+E || vec == N+W {
@@ -215,8 +239,12 @@ func (b *Board) AvailableMoves(tileId int) map[int]Move {
 				}
 				continue
 			}
-			moves[currId] = Advance
 
+			if vec == N+N {
+				moves[currId] = PawnJump
+			} else {
+				moves[currId] = Advance
+			}
 			if mod := currId % 8; mod == 0 || mod == 7 {
 				continue
 			}
@@ -234,6 +262,7 @@ func (b *Board) Debug(activeId int) string {
 	var buffer bytes.Buffer
 
 	buffer.WriteRune('\n')
+	fmt.Fprintf(&buffer, "%v \n", b.enPassantInfo)
 
 	moves := b.AvailableMoves(activeId)
 	fmt.Fprintln(&buffer, moves)
@@ -253,15 +282,17 @@ func (b *Board) Debug(activeId int) string {
 		if move, has := moves[tileId]; has {
 			switch move {
 			case Attack:
-				buffer.WriteString(checkerIt(fmt.Sprintf("\033[31m %s \033[0m", tile.Piece)))
-			case Advance:
+				buffer.WriteString(checkerIt(fmt.Sprintf("\033[31m %s \033[0m", tile.Piece.Role)))
+			case Advance, PawnJump:
 				buffer.WriteString(checkerIt(fmt.Sprintf("\033[34m %s \033[0m", "·")))
+			default:
+				log.Fatalf("unknown move %v", move)
 			}
 		} else {
 			if tileId == activeId {
-				buffer.WriteString(checkerIt(fmt.Sprintf("\033[32m %s \033[0m", tile.Piece)))
+				buffer.WriteString(checkerIt(fmt.Sprintf("\033[32m %s \033[0m", tile.Piece.Role)))
 			} else {
-				buffer.WriteString(checkerIt(fmt.Sprintf(" %s ", tile.Piece)))
+				buffer.WriteString(checkerIt(fmt.Sprintf(" %s ", tile.Piece.Role)))
 			}
 		}
 
@@ -276,8 +307,9 @@ func (b *Board) Debug(activeId int) string {
 
 func NewBoard(options ...BoardOption) *Board {
 	board := &Board{
-		Tiles: make([]Tile, NumberOfTiles),
-		Next:  White,
+		Tiles:         make([]Tile, NumberOfTiles),
+		Next:          White,
+		enPassantInfo: EnPassantInfo{PassingTileId: -1},
 	}
 
 	board.Tiles = make([]Tile, NumberOfTiles)
