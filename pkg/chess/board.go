@@ -25,7 +25,7 @@ func (b *Board) AvailableMoves(tileId int) map[int]Move {
 
 	tile := b.TileAt(tileId)
 
-	if tile.Piece == WhiteRook {
+	if tile.Piece == WhiteRook || tile.Piece == BlackRook {
 		for _, vec := range []Vector{N, S, E, W} {
 			for currId := tileId + int(vec); ; currId += int(vec) {
 				if currId < 0 || currId >= NumberOfTiles || vec == E && currId%8 == 0 || vec == W && currId%8 == 7 {
@@ -35,11 +35,59 @@ func (b *Board) AvailableMoves(tileId int) map[int]Move {
 					moves[currId] = Attack
 					break
 				}
+				if b.TileAt(currId).Piece.Color() == tile.Piece.Color() {
+					break
+				}
 				moves[currId] = Advance
 			}
 		}
 	}
 
+	if tile.Piece == WhiteBishop || tile.Piece == BlackBishop {
+		for _, vec := range []Vector{N + E, N + W, S + E, S + W} {
+			for currId := tileId + int(vec); ; currId += int(vec) {
+				fmt.Println(currId)
+				if currId < 0 || currId >= NumberOfTiles || ((vec == N+E || vec == S+E) && currId%8 == 0) || ((vec == N+W || vec == S+W) && currId%8 == 7) {
+					break
+				}
+				if other := b.TileAt(currId).Piece.Color(); other != None && other != tile.Piece.Color() {
+					moves[currId] = Attack
+					break
+				}
+				if b.TileAt(currId).Piece.Color() == tile.Piece.Color() {
+					break
+				}
+				moves[currId] = Advance
+
+				if mod := currId % 8; mod == 0 || mod == 7 {
+					break
+				}
+			}
+		}
+	}
+
+	if tile.Piece == WhiteQueen || tile.Piece == BlackQueen {
+		for _, vec := range []Vector{N, S, E, W, N + E, N + W, S + E, S + W} {
+			for currId := tileId + int(vec); ; currId += int(vec) {
+				fmt.Println(currId)
+				if currId < 0 || currId >= NumberOfTiles || ((vec == E || vec == N+E || vec == S+E) && currId%8 == 0) || ((vec == W || vec == N+W || vec == S+W) && currId%8 == 7) {
+					break
+				}
+				if other := b.TileAt(currId).Piece.Color(); other != None && other != tile.Piece.Color() {
+					moves[currId] = Attack
+					break
+				}
+				if b.TileAt(currId).Piece.Color() == tile.Piece.Color() {
+					break
+				}
+				moves[currId] = Advance
+
+				if mod := currId % 8; mod == 0 || mod == 7 {
+					break
+				}
+			}
+		}
+	}
 	return moves
 }
 
@@ -53,22 +101,19 @@ func (b *Board) TileAt(idx int) Tile {
 func (b *Board) String() string {
 	var buffer bytes.Buffer
 
-	moves := b.AvailableMoves(52)
+	moves := b.AvailableMoves(22)
 	for tileId, tile := range b.Tiles {
 		if tileId%8 == 0 {
 			fmt.Fprintf(&buffer, "%d\t", tileId/8+1)
 		}
 
 		if move, has := moves[tileId]; has {
-			symbol := ' '
 			switch move {
 			case Attack:
-				symbol = 'x'
+				fmt.Fprintf(&buffer, "\033[31m%s \033[39m", tile.Piece)
 			case Advance:
-				symbol = '+'
+				fmt.Fprintf(&buffer, "%s ", "+")
 			}
-
-			fmt.Fprintf(&buffer, "%s ", string(symbol))
 		} else {
 			fmt.Fprintf(&buffer, "%s ", tile.Piece)
 		}
