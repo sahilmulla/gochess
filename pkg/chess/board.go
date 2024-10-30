@@ -266,11 +266,11 @@ func NewBoard(options ...BoardOption) *Board {
 
 type BoardOption func(*Board)
 
-func WithStandardStartPosition() BoardOption {
-	return WithCustomStartPosition(StandardStart)
+func WithStandardPlacement() BoardOption {
+	return WithCustomPlacement(StandardPlacement)
 }
 
-func WithCustomStartPosition(initPieces map[int]Piece) BoardOption {
+func WithCustomPlacement(initPieces map[int]Piece) BoardOption {
 	return func(b *Board) {
 		for pos, piece := range initPieces {
 			b.Tiles[pos] = Tile{Piece: piece}

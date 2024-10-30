@@ -29,7 +29,7 @@ const (
 )
 
 var (
-	StandardStart = map[int]Piece{
+	StandardPlacement = map[int]Piece{
 		0:  BlackRook,
 		1:  BlackKnight,
 		2:  BlackBishop,
