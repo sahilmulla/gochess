@@ -1,27 +1,9 @@
 package chess
 
-import "fmt"
+type Piece byte
 
-type Piece struct {
-	Role
-	FirstMove bool
-}
-
-func (p Piece) String() string {
-	return fmt.Sprintf("firstmove:%t role:%v", p.FirstMove, p.Role)
-}
-
-func NewPiece(r Role) *Piece {
-	return &Piece{Role: r, FirstMove: true}
-}
-func NewEmptyPiece() *Piece {
-	return &Piece{Role: Empty}
-}
-
-type Role byte
-
-func (r Role) Team() Team {
-	if r == Empty {
+func (r Piece) Team() Team {
+	if r == EmptyPiece {
 		return None
 	} else if r >= 97 {
 		return Black
@@ -30,24 +12,24 @@ func (r Role) Team() Team {
 	}
 }
 
-func (r Role) String() string {
+func (r Piece) String() string {
 	return string(r)
 }
 
 const (
-	BlackKing   Role = 'k'
-	BlackQueen  Role = 'q'
-	BlackBishop Role = 'b'
-	BlackKnight Role = 'n'
-	BlackRook   Role = 'r'
-	BlackPawn   Role = 'p'
+	BlackKing   Piece = 'k'
+	BlackQueen  Piece = 'q'
+	BlackBishop Piece = 'b'
+	BlackKnight Piece = 'n'
+	BlackRook   Piece = 'r'
+	BlackPawn   Piece = 'p'
 
-	WhiteKing   Role = 'K'
-	WhiteQueen  Role = 'Q'
-	WhiteBishop Role = 'B'
-	WhiteKnight Role = 'N'
-	WhiteRook   Role = 'R'
-	WhitePawn   Role = 'P'
+	WhiteKing   Piece = 'K'
+	WhiteQueen  Piece = 'Q'
+	WhiteBishop Piece = 'B'
+	WhiteKnight Piece = 'N'
+	WhiteRook   Piece = 'R'
+	WhitePawn   Piece = 'P'
 
-	Empty Role = ' '
+	EmptyPiece Piece = ' '
 )

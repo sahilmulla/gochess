@@ -35,7 +35,7 @@ const (
 )
 
 var (
-	StandardPlacement = map[int]Role{
+	StandardPlacement = map[int]Piece{
 		0:  BlackRook,
 		1:  BlackKnight,
 		2:  BlackBishop,

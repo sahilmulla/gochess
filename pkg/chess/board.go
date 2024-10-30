@@ -9,7 +9,7 @@ import (
 
 type Log struct {
 	From, To        int
-	Moved, Captured Role
+	Moved, Captured Piece
 	Team            Team
 }
 
@@ -24,7 +24,7 @@ type Board struct {
 	enPassantInfo EnPassantInfo
 }
 
-func (b *Board) Move(from, to int) (*Role, error) {
+func (b *Board) Move(from, to int) (*Piece, error) {
 	toMove := b.Tiles[from].Piece
 
 	if toMove.Team() != b.Next {
@@ -42,7 +42,7 @@ func (b *Board) Move(from, to int) (*Role, error) {
 
 	b.Tiles[to] = b.Tiles[from]
 
-	b.Tiles[from] = Tile{Piece: NewEmptyPiece()}
+	b.Tiles[from] = Tile{Piece: EmptyPiece}
 
 	if m == PawnJump {
 		if b.Next == Black {
@@ -52,8 +52,7 @@ func (b *Board) Move(from, to int) (*Role, error) {
 		}
 	}
 
-	toMove.FirstMove = false
-	b.MoveLog = append(b.MoveLog, Log{From: from, To: to, Moved: toMove.Role, Captured: captured.Role, Team: b.Next})
+	b.MoveLog = append(b.MoveLog, Log{From: from, To: to, Moved: toMove, Captured: captured, Team: b.Next})
 
 	if b.Next == Black {
 		b.Next = White
@@ -61,7 +60,7 @@ func (b *Board) Move(from, to int) (*Role, error) {
 		b.Next = Black
 	}
 
-	return &captured.Role, nil
+	return &captured, nil
 }
 
 func (b *Board) AvailableMoves(tileId int) map[int]Move {
@@ -73,7 +72,7 @@ func (b *Board) AvailableMoves(tileId int) map[int]Move {
 
 	tile := b.TileAt(tileId)
 
-	if tile.Piece.Role == WhiteRook || tile.Piece.Role == BlackRook {
+	if tile.Piece == WhiteRook || tile.Piece == BlackRook {
 		for _, vec := range []Vector{N, S, E, W} {
 			for currId := tileId + int(vec); ; currId += int(vec) {
 				if currId < 0 || currId >= NumberOfTiles || vec == E && currId%8 == 0 || vec == W && currId%8 == 7 {
@@ -91,7 +90,7 @@ func (b *Board) AvailableMoves(tileId int) map[int]Move {
 		}
 	}
 
-	if tile.Piece.Role == WhiteBishop || tile.Piece.Role == BlackBishop {
+	if tile.Piece == WhiteBishop || tile.Piece == BlackBishop {
 		for _, vec := range []Vector{N + E, N + W, S + E, S + W} {
 			for currId := tileId + int(vec); ; currId += int(vec) {
 				if currId < 0 || currId >= NumberOfTiles || ((vec == N+E || vec == S+E) && currId%8 == 0) || ((vec == N+W || vec == S+W) && currId%8 == 7) {
@@ -113,7 +112,7 @@ func (b *Board) AvailableMoves(tileId int) map[int]Move {
 		}
 	}
 
-	if tile.Piece.Role == WhiteQueen || tile.Piece.Role == BlackQueen {
+	if tile.Piece == WhiteQueen || tile.Piece == BlackQueen {
 		for _, vec := range []Vector{N, S, E, W, N + E, N + W, S + E, S + W} {
 			for currId := tileId + int(vec); ; currId += int(vec) {
 				if currId < 0 || currId >= NumberOfTiles || ((vec == E || vec == N+E || vec == S+E) && currId%8 == 0) || ((vec == W || vec == N+W || vec == S+W) && currId%8 == 7) {
@@ -135,7 +134,7 @@ func (b *Board) AvailableMoves(tileId int) map[int]Move {
 		}
 	}
 
-	if tile.Piece.Role == WhiteKing || tile.Piece.Role == BlackKing {
+	if tile.Piece == WhiteKing || tile.Piece == BlackKing {
 		for _, vec := range []Vector{N, S, E, W, N + E, N + W, S + E, S + W} {
 			currId := tileId + int(vec)
 			if currId < 0 || currId >= NumberOfTiles || (currId%8 == 0 && (vec == E || vec == N+E || vec == S+E)) || (currId%8 == 7 && (vec == W || vec == N+W || vec == S+W)) {
@@ -156,7 +155,7 @@ func (b *Board) AvailableMoves(tileId int) map[int]Move {
 		}
 	}
 
-	if tile.Piece.Role == WhiteKnight || tile.Piece.Role == BlackKnight {
+	if tile.Piece == WhiteKnight || tile.Piece == BlackKnight {
 		for _, vec := range []Vector{N + N + E, N + N + W, S + S + E, S + S + W, W + W + N, W + W + S, E + E + N, E + E + S} {
 			currId := tileId + int(vec)
 			if currId < 0 || currId >= NumberOfTiles ||
@@ -181,7 +180,7 @@ func (b *Board) AvailableMoves(tileId int) map[int]Move {
 		}
 	}
 
-	if tile.Piece.Role == BlackPawn {
+	if tile.Piece == BlackPawn {
 		skipJump := false
 		for _, vec := range []Vector{S, S + S, S + W, S + E} {
 			currId := tileId + int(vec)
@@ -217,7 +216,7 @@ func (b *Board) AvailableMoves(tileId int) map[int]Move {
 		}
 	}
 
-	if tile.Piece.Role == WhitePawn {
+	if tile.Piece == WhitePawn {
 		skipJump := false
 		for _, vec := range []Vector{N, N + N, N + W, N + E} {
 			currId := tileId + int(vec)
@@ -282,7 +281,7 @@ func (b *Board) Debug(activeId int) string {
 		if move, has := moves[tileId]; has {
 			switch move {
 			case Attack:
-				buffer.WriteString(checkerIt(fmt.Sprintf("\033[31m %s \033[0m", tile.Piece.Role)))
+				buffer.WriteString(checkerIt(fmt.Sprintf("\033[31m %s \033[0m", tile.Piece)))
 			case Advance, PawnJump:
 				buffer.WriteString(checkerIt(fmt.Sprintf("\033[34m %s \033[0m", "·")))
 			default:
@@ -290,9 +289,9 @@ func (b *Board) Debug(activeId int) string {
 			}
 		} else {
 			if tileId == activeId {
-				buffer.WriteString(checkerIt(fmt.Sprintf("\033[32m %s \033[0m", tile.Piece.Role)))
+				buffer.WriteString(checkerIt(fmt.Sprintf("\033[32m %s \033[0m", tile.Piece)))
 			} else {
-				buffer.WriteString(checkerIt(fmt.Sprintf(" %s ", tile.Piece.Role)))
+				buffer.WriteString(checkerIt(fmt.Sprintf(" %s ", tile.Piece)))
 			}
 		}
 
@@ -315,7 +314,7 @@ func NewBoard(options ...BoardOption) *Board {
 	board.Tiles = make([]Tile, NumberOfTiles)
 
 	for t := range board.Tiles {
-		board.Tiles[t] = Tile{Piece: NewEmptyPiece()}
+		board.Tiles[t] = Tile{Piece: EmptyPiece}
 	}
 
 	for _, opt := range options {
@@ -331,14 +330,14 @@ func WithStandardPlacement() BoardOption {
 	return WithCustomPlacement(StandardPlacement)
 }
 
-func WithCustomPlacement(initPieces map[int]Role) BoardOption {
+func WithCustomPlacement(initPieces map[int]Piece) BoardOption {
 	return func(b *Board) {
-		for pos, role := range initPieces {
-			b.Tiles[pos] = Tile{Piece: NewPiece(role)}
+		for tileId, p := range initPieces {
+			b.Tiles[tileId] = Tile{Piece: p}
 		}
 	}
 }
 
 type Tile struct {
-	Piece *Piece
+	Piece Piece
 }

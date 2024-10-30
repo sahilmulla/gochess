@@ -6,12 +6,12 @@ import (
 )
 
 func main() {
-	b := chess.NewBoard(chess.WithCustomPlacement(map[int]chess.Role{43: chess.BlackRook, 50: chess.WhitePawn, 22: chess.WhiteQueen, 34: chess.BlackPawn}))
+	b := chess.NewBoard(chess.WithCustomPlacement(map[int]chess.Piece{43: chess.BlackRook, 50: chess.WhitePawn, 22: chess.WhiteQueen, 33: chess.BlackPawn}))
 
 	fmt.Println(b.Debug(50))
-	// fmt.Println(b.Move(50, 34))
+	fmt.Println(b.Move(50, 34))
 
-	// fmt.Println(b.Debug(31))
+	fmt.Println(b.Debug(33))
 
 	// b := chess.NewBoard(chess.WithStandardPlacement())
 
