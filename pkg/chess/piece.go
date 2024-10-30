@@ -31,5 +31,5 @@ const (
 	WhiteRook   Piece = 'R'
 	WhitePawn   Piece = 'P'
 
-	EmptyPiece Piece = '.'
+	EmptyPiece Piece = ' '
 )

@@ -2,6 +2,7 @@ package chess
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 )
 
@@ -10,18 +11,28 @@ type Board struct {
 	Next  Color
 }
 
-func (b *Board) Move(from, to int) (Piece, error) {
+func (b *Board) Move(from, to int) (*Piece, error) {
+	moves := b.AvailableMoves(from)
+
+	if _, has := moves[to]; !has {
+		return nil, errors.New("illegal move")
+	}
+
 	captured := b.Tiles[to].Piece
 
 	b.Tiles[to] = b.Tiles[from]
 
 	b.Tiles[from] = Tile{EmptyPiece}
 
-	return captured, nil
+	return &captured, nil
 }
 
 func (b *Board) AvailableMoves(tileId int) map[int]Move {
 	moves := make(map[int]Move)
+
+	if tileId < 0 {
+		return moves
+	}
 
 	tile := b.TileAt(tileId)
 
@@ -46,7 +57,6 @@ func (b *Board) AvailableMoves(tileId int) map[int]Move {
 	if tile.Piece == WhiteBishop || tile.Piece == BlackBishop {
 		for _, vec := range []Vector{N + E, N + W, S + E, S + W} {
 			for currId := tileId + int(vec); ; currId += int(vec) {
-				fmt.Println(currId)
 				if currId < 0 || currId >= NumberOfTiles || ((vec == N+E || vec == S+E) && currId%8 == 0) || ((vec == N+W || vec == S+W) && currId%8 == 7) {
 					break
 				}
@@ -69,7 +79,6 @@ func (b *Board) AvailableMoves(tileId int) map[int]Move {
 	if tile.Piece == WhiteQueen || tile.Piece == BlackQueen {
 		for _, vec := range []Vector{N, S, E, W, N + E, N + W, S + E, S + W} {
 			for currId := tileId + int(vec); ; currId += int(vec) {
-				fmt.Println(currId)
 				if currId < 0 || currId >= NumberOfTiles || ((vec == E || vec == N+E || vec == S+E) && currId%8 == 0) || ((vec == W || vec == N+W || vec == S+W) && currId%8 == 7) {
 					break
 				}
@@ -92,30 +101,38 @@ func (b *Board) AvailableMoves(tileId int) map[int]Move {
 }
 
 func (b *Board) TileAt(idx int) Tile {
-	t := b.Tiles[idx]
-	copy := Tile{Piece: t.Piece}
-
-	return copy
+	return b.Tiles[idx]
 }
 
-func (b *Board) String() string {
+func (b *Board) Debug(activeId int) string {
 	var buffer bytes.Buffer
 
-	moves := b.AvailableMoves(22)
+	moves := b.AvailableMoves(activeId)
 	for tileId, tile := range b.Tiles {
 		if tileId%8 == 0 {
-			fmt.Fprintf(&buffer, "%d\t", tileId/8+1)
+			fmt.Fprintf(&buffer, "%d\t", tileId)
+		}
+
+		checkerIt := func(s string) string {
+			if tileId/8%2^tileId%2 == 0 {
+				return fmt.Sprintf("\033[49m%s\033[0m", s)
+			}
+			return fmt.Sprintf("\033[100m%s\033[0m", s)
 		}
 
 		if move, has := moves[tileId]; has {
 			switch move {
 			case Attack:
-				fmt.Fprintf(&buffer, "\033[31m%s \033[39m", tile.Piece)
+				buffer.WriteString(checkerIt(fmt.Sprintf("\033[31m %s \033[0m", tile.Piece)))
 			case Advance:
-				fmt.Fprintf(&buffer, "%s ", "+")
+				buffer.WriteString(checkerIt(fmt.Sprintf("\033[34m %s \033[0m", "+")))
 			}
 		} else {
-			fmt.Fprintf(&buffer, "%s ", tile.Piece)
+			if tileId == activeId {
+				buffer.WriteString(checkerIt(fmt.Sprintf("\033[32m %s \033[0m", tile.Piece)))
+			} else {
+				buffer.WriteString(checkerIt(fmt.Sprintf(" %s ", tile.Piece)))
+			}
 		}
 
 		if tileId%8 == 7 && tileId < 8*7 {
