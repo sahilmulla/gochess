@@ -143,6 +143,57 @@ func (b *Board) AvailableMoves(tileId int) map[int]Move {
 			}
 		}
 	}
+
+	if tile.Piece == BlackPawn {
+		for _, vec := range []Vector{S, S + W, S + E} {
+			currId := tileId + int(vec)
+			if currId < 0 || currId >= NumberOfTiles ||
+				(tileId%8 == 7 && vec == S+E) ||
+				(tileId%8 == 0 && vec == S+W) {
+				continue
+			}
+			if vec == S && b.TileAt(currId).Piece.Color() != None {
+				continue
+			}
+			if vec == S+E || vec == S+W {
+				if other := b.TileAt(currId).Piece.Color(); other != None && other != tile.Piece.Color() {
+					moves[currId] = Attack
+				}
+				continue
+			}
+			moves[currId] = Advance
+
+			if mod := currId % 8; mod == 0 || mod == 7 {
+				continue
+			}
+		}
+	}
+
+	if tile.Piece == WhitePawn {
+		for _, vec := range []Vector{N, N + W, N + E} {
+			currId := tileId + int(vec)
+			if currId < 0 || currId >= NumberOfTiles ||
+				(tileId%8 == 7 && vec == N+E) ||
+				(tileId%8 == 0 && vec == N+W) {
+				continue
+			}
+			if vec == N && b.TileAt(currId).Piece.Color() != None {
+				continue
+			}
+			if vec == N+E || vec == N+W {
+				if other := b.TileAt(currId).Piece.Color(); other != None && other != tile.Piece.Color() {
+					moves[currId] = Attack
+				}
+				continue
+			}
+			moves[currId] = Advance
+
+			if mod := currId % 8; mod == 0 || mod == 7 {
+				continue
+			}
+		}
+	}
+
 	return moves
 }
 
