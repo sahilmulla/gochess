@@ -197,7 +197,7 @@ func (b *Board) AvailableMoves(tileId int) map[int]Move {
 				(tileId%8 == 0 && vec == S+W) {
 				continue
 			}
-			if vec == S+S && (skipTwoStep || tileId/2 != 1 || b.TileAt(currId).Piece.Team() != None) {
+			if vec == S+S && (skipTwoStep || tileId/8 != 1 || b.TileAt(currId).Piece.Team() != None) {
 				continue
 			}
 			if vec == S && b.TileAt(currId).Piece.Team() != None {
@@ -244,6 +244,8 @@ func (b *Board) AvailableMoves(tileId int) map[int]Move {
 			if vec == N+E || vec == N+W {
 				if other := b.TileAt(currId).Piece.Team(); other != None && other != tile.Piece.Team() {
 					moves[currId] = Attack
+				} else if currId == b.enPassantInfo.PassingTileId {
+					moves[currId] = EnPassantAttack
 				}
 				continue
 			}
@@ -339,6 +341,12 @@ func NewBoard(options ...BoardOption) *Board {
 }
 
 type BoardOption func(*Board)
+
+func WithStartTeam(t Team) BoardOption {
+	return func(b *Board) {
+		b.Next = t
+	}
+}
 
 func WithStandardPlacement() BoardOption {
 	return WithCustomPlacement(StandardPlacement)
