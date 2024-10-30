@@ -11,12 +11,16 @@ const (
 	Attack
 )
 
-type Color int
+type Team byte
+
+func (t Team) String() string {
+	return string(t)
+}
 
 const (
-	None Color = iota
-	White
-	Black
+	None  Team = 'n'
+	White Team = 'w'
+	Black Team = 'b'
 )
 
 type Vector int

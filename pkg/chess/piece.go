@@ -6,7 +6,7 @@ func (p Piece) String() string {
 	return string(p)
 }
 
-func (p Piece) Color() Color {
+func (p Piece) Team() Team {
 	if p == EmptyPiece {
 		return None
 	} else if p >= 97 {

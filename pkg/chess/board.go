@@ -6,12 +6,23 @@ import (
 	"fmt"
 )
 
+type Log struct {
+	From, To int
+	Capture  Piece
+	Team     Team
+}
+
 type Board struct {
-	Tiles []Tile
-	Next  Color
+	Tiles   []Tile
+	Next    Team
+	MoveLog []Log
 }
 
 func (b *Board) Move(from, to int) (*Piece, error) {
+	if b.TileAt(from).Piece.Team() != b.Next {
+		return nil, errors.New("illegal turn")
+	}
+
 	moves := b.AvailableMoves(from)
 
 	if _, has := moves[to]; !has {
@@ -23,6 +34,14 @@ func (b *Board) Move(from, to int) (*Piece, error) {
 	b.Tiles[to] = b.Tiles[from]
 
 	b.Tiles[from] = Tile{EmptyPiece}
+
+	b.MoveLog = append(b.MoveLog, Log{From: from, To: to, Capture: captured, Team: b.Next})
+
+	if b.Next == Black {
+		b.Next = White
+	} else {
+		b.Next = Black
+	}
 
 	return &captured, nil
 }
@@ -42,11 +61,11 @@ func (b *Board) AvailableMoves(tileId int) map[int]Move {
 				if currId < 0 || currId >= NumberOfTiles || vec == E && currId%8 == 0 || vec == W && currId%8 == 7 {
 					break
 				}
-				if other := b.TileAt(currId).Piece.Color(); other != None && other != tile.Piece.Color() {
+				if other := b.TileAt(currId).Piece.Team(); other != None && other != tile.Piece.Team() {
 					moves[currId] = Attack
 					break
 				}
-				if b.TileAt(currId).Piece.Color() == tile.Piece.Color() {
+				if b.TileAt(currId).Piece.Team() == tile.Piece.Team() {
 					break
 				}
 				moves[currId] = Advance
@@ -60,11 +79,11 @@ func (b *Board) AvailableMoves(tileId int) map[int]Move {
 				if currId < 0 || currId >= NumberOfTiles || ((vec == N+E || vec == S+E) && currId%8 == 0) || ((vec == N+W || vec == S+W) && currId%8 == 7) {
 					break
 				}
-				if other := b.TileAt(currId).Piece.Color(); other != None && other != tile.Piece.Color() {
+				if other := b.TileAt(currId).Piece.Team(); other != None && other != tile.Piece.Team() {
 					moves[currId] = Attack
 					break
 				}
-				if b.TileAt(currId).Piece.Color() == tile.Piece.Color() {
+				if b.TileAt(currId).Piece.Team() == tile.Piece.Team() {
 					break
 				}
 				moves[currId] = Advance
@@ -82,11 +101,11 @@ func (b *Board) AvailableMoves(tileId int) map[int]Move {
 				if currId < 0 || currId >= NumberOfTiles || ((vec == E || vec == N+E || vec == S+E) && currId%8 == 0) || ((vec == W || vec == N+W || vec == S+W) && currId%8 == 7) {
 					break
 				}
-				if other := b.TileAt(currId).Piece.Color(); other != None && other != tile.Piece.Color() {
+				if other := b.TileAt(currId).Piece.Team(); other != None && other != tile.Piece.Team() {
 					moves[currId] = Attack
 					break
 				}
-				if b.TileAt(currId).Piece.Color() == tile.Piece.Color() {
+				if b.TileAt(currId).Piece.Team() == tile.Piece.Team() {
 					break
 				}
 				moves[currId] = Advance
@@ -104,11 +123,11 @@ func (b *Board) AvailableMoves(tileId int) map[int]Move {
 			if currId < 0 || currId >= NumberOfTiles || (currId%8 == 0 && (vec == E || vec == N+E || vec == S+E)) || (currId%8 == 7 && (vec == W || vec == N+W || vec == S+W)) {
 				continue
 			}
-			if other := b.TileAt(currId).Piece.Color(); other != None && other != tile.Piece.Color() {
+			if other := b.TileAt(currId).Piece.Team(); other != None && other != tile.Piece.Team() {
 				moves[currId] = Attack
 				continue
 			}
-			if b.TileAt(currId).Piece.Color() == tile.Piece.Color() {
+			if b.TileAt(currId).Piece.Team() == tile.Piece.Team() {
 				continue
 			}
 			moves[currId] = Advance
@@ -129,11 +148,11 @@ func (b *Board) AvailableMoves(tileId int) map[int]Move {
 				(tileId%8 == 7 && (vec == N+N+E || vec == S+S+E)) {
 				continue
 			}
-			if other := b.TileAt(currId).Piece.Color(); other != None && other != tile.Piece.Color() {
+			if other := b.TileAt(currId).Piece.Team(); other != None && other != tile.Piece.Team() {
 				moves[currId] = Attack
 				continue
 			}
-			if b.TileAt(currId).Piece.Color() == tile.Piece.Color() {
+			if b.TileAt(currId).Piece.Team() == tile.Piece.Team() {
 				continue
 			}
 			moves[currId] = Advance
@@ -152,11 +171,11 @@ func (b *Board) AvailableMoves(tileId int) map[int]Move {
 				(tileId%8 == 0 && vec == S+W) {
 				continue
 			}
-			if vec == S && b.TileAt(currId).Piece.Color() != None {
+			if vec == S && b.TileAt(currId).Piece.Team() != None {
 				continue
 			}
 			if vec == S+E || vec == S+W {
-				if other := b.TileAt(currId).Piece.Color(); other != None && other != tile.Piece.Color() {
+				if other := b.TileAt(currId).Piece.Team(); other != None && other != tile.Piece.Team() {
 					moves[currId] = Attack
 				}
 				continue
@@ -177,11 +196,11 @@ func (b *Board) AvailableMoves(tileId int) map[int]Move {
 				(tileId%8 == 0 && vec == N+W) {
 				continue
 			}
-			if vec == N && b.TileAt(currId).Piece.Color() != None {
+			if vec == N && b.TileAt(currId).Piece.Team() != None {
 				continue
 			}
 			if vec == N+E || vec == N+W {
-				if other := b.TileAt(currId).Piece.Color(); other != None && other != tile.Piece.Color() {
+				if other := b.TileAt(currId).Piece.Team(); other != None && other != tile.Piece.Team() {
 					moves[currId] = Attack
 				}
 				continue
@@ -226,7 +245,7 @@ func (b *Board) Debug(activeId int) string {
 			case Attack:
 				buffer.WriteString(checkerIt(fmt.Sprintf("\033[31m %s \033[0m", tile.Piece)))
 			case Advance:
-				buffer.WriteString(checkerIt(fmt.Sprintf("\033[34m %s \033[0m", "+")))
+				buffer.WriteString(checkerIt(fmt.Sprintf("\033[34m %s \033[0m", "·")))
 			}
 		} else {
 			if tileId == activeId {
