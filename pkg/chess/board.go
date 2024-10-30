@@ -7,9 +7,9 @@ import (
 )
 
 type Log struct {
-	From, To int
-	Capture  Piece
-	Team     Team
+	From, To        int
+	Moved, Captured Piece
+	Team            Team
 }
 
 type Board struct {
@@ -19,7 +19,9 @@ type Board struct {
 }
 
 func (b *Board) Move(from, to int) (*Piece, error) {
-	if b.TileAt(from).Piece.Team() != b.Next {
+	toMove := b.Tiles[from].Piece
+
+	if toMove.Team() != b.Next {
 		return nil, errors.New("illegal turn")
 	}
 
@@ -35,7 +37,7 @@ func (b *Board) Move(from, to int) (*Piece, error) {
 
 	b.Tiles[from] = Tile{EmptyPiece}
 
-	b.MoveLog = append(b.MoveLog, Log{From: from, To: to, Capture: captured, Team: b.Next})
+	b.MoveLog = append(b.MoveLog, Log{From: from, To: to, Moved: toMove, Captured: captured, Team: b.Next})
 
 	if b.Next == Black {
 		b.Next = White

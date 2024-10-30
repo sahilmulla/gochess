@@ -16,8 +16,12 @@ func main() {
 	fmt.Println(b.Move(12, 20))
 	fmt.Println(b.Move(44, 36))
 	fmt.Println(b.Move(20, 28))
-	fmt.Println(b.Move(57, 42))
+	fmt.Println(b.Move(62, 45))
+	fmt.Println(b.Move(1, 18))
+	fmt.Println(b.Move(61, 34))
+	fmt.Println(b.Move(5, 26))
+	fmt.Println(b.Move(50, 42))
 
-	fmt.Println(b.Debug(42))
+	fmt.Println(b.Debug(34))
 	fmt.Printf("%+v\n", b.MoveLog)
 }
