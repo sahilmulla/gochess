@@ -11,6 +11,7 @@ const (
 	PawnTwoStep
 
 	Attack
+	EnPassantAttack
 )
 
 type Team byte

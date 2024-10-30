@@ -14,7 +14,7 @@ type Log struct {
 }
 
 type EnPassantInfo struct {
-	PassingTileId int
+	PassingTileId, CaptureTileId int
 }
 
 type Board struct {
@@ -44,12 +44,19 @@ func (b *Board) Move(from, to int) (*Piece, error) {
 
 	b.Tiles[from] = Tile{Piece: EmptyPiece}
 
+	if m == EnPassantAttack {
+		captured = b.Tiles[b.enPassantInfo.CaptureTileId].Piece
+		b.Tiles[b.enPassantInfo.CaptureTileId] = Tile{Piece: EmptyPiece}
+	}
+
 	if m == PawnTwoStep {
 		if b.Next == Black {
-			b.enPassantInfo.PassingTileId = to + int(N)
+			b.enPassantInfo = EnPassantInfo{PassingTileId: to + int(N), CaptureTileId: to}
 		} else if b.Next == White {
-			b.enPassantInfo.PassingTileId = to + int(S)
+			b.enPassantInfo = EnPassantInfo{PassingTileId: to + int(S), CaptureTileId: to}
 		}
+	} else {
+		b.enPassantInfo = EnPassantInfo{CaptureTileId: -1, PassingTileId: -1}
 	}
 
 	b.MoveLog = append(b.MoveLog, Log{From: from, To: to, Moved: toMove, Captured: captured, Team: b.Next})
@@ -200,6 +207,8 @@ func (b *Board) AvailableMoves(tileId int) map[int]Move {
 			if vec == S+E || vec == S+W {
 				if other := b.TileAt(currId).Piece.Team(); other != None && other != tile.Piece.Team() {
 					moves[currId] = Attack
+				} else if currId == b.enPassantInfo.PassingTileId {
+					moves[currId] = EnPassantAttack
 				}
 				continue
 			}
@@ -282,6 +291,8 @@ func (b *Board) Debug(activeId int) string {
 			switch move {
 			case Attack:
 				buffer.WriteString(checkerIt(fmt.Sprintf("\033[31m %s \033[0m", tile.Piece)))
+			case EnPassantAttack:
+				buffer.WriteString(checkerIt(fmt.Sprintf("\033[31m %s \033[0m", "*")))
 			case Advance, PawnTwoStep:
 				buffer.WriteString(checkerIt(fmt.Sprintf("\033[34m %s \033[0m", "·")))
 			default:
@@ -290,9 +301,12 @@ func (b *Board) Debug(activeId int) string {
 		} else {
 			if tileId == activeId {
 				buffer.WriteString(checkerIt(fmt.Sprintf("\033[32m %s \033[0m", tile.Piece)))
+			} else if tileId == b.enPassantInfo.CaptureTileId {
+				buffer.WriteString(checkerIt(fmt.Sprintf("\033[31m %s \033[0m", tile.Piece)))
 			} else {
 				buffer.WriteString(checkerIt(fmt.Sprintf(" %s ", tile.Piece)))
 			}
+
 		}
 
 		if tileId%8 == 7 && tileId < 8*7 {
@@ -308,7 +322,7 @@ func NewBoard(options ...BoardOption) *Board {
 	board := &Board{
 		Tiles:         make([]Tile, NumberOfTiles),
 		Next:          White,
-		enPassantInfo: EnPassantInfo{PassingTileId: -1},
+		enPassantInfo: EnPassantInfo{PassingTileId: -1, CaptureTileId: -1},
 	}
 
 	board.Tiles = make([]Tile, NumberOfTiles)
