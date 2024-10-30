@@ -44,7 +44,7 @@ func (b *Board) Move(from, to int) (*Piece, error) {
 
 	b.Tiles[from] = Tile{Piece: EmptyPiece}
 
-	if m == PawnJump {
+	if m == PawnTwoStep {
 		if b.Next == Black {
 			b.enPassantInfo.PassingTileId = to + int(N)
 		} else if b.Next == White {
@@ -181,7 +181,7 @@ func (b *Board) AvailableMoves(tileId int) map[int]Move {
 	}
 
 	if tile.Piece == BlackPawn {
-		skipJump := false
+		skipTwoStep := false
 		for _, vec := range []Vector{S, S + S, S + W, S + E} {
 			currId := tileId + int(vec)
 
@@ -190,11 +190,11 @@ func (b *Board) AvailableMoves(tileId int) map[int]Move {
 				(tileId%8 == 0 && vec == S+W) {
 				continue
 			}
-			if vec == S+S && (skipJump || tileId/2 != 1 || b.TileAt(currId).Piece.Team() != None) {
+			if vec == S+S && (skipTwoStep || tileId/2 != 1 || b.TileAt(currId).Piece.Team() != None) {
 				continue
 			}
 			if vec == S && b.TileAt(currId).Piece.Team() != None {
-				skipJump = true
+				skipTwoStep = true
 				continue
 			}
 			if vec == S+E || vec == S+W {
@@ -205,7 +205,7 @@ func (b *Board) AvailableMoves(tileId int) map[int]Move {
 			}
 
 			if vec == S+S {
-				moves[currId] = PawnJump
+				moves[currId] = PawnTwoStep
 			} else {
 				moves[currId] = Advance
 			}
@@ -217,7 +217,7 @@ func (b *Board) AvailableMoves(tileId int) map[int]Move {
 	}
 
 	if tile.Piece == WhitePawn {
-		skipJump := false
+		skipTwoStep := false
 		for _, vec := range []Vector{N, N + N, N + W, N + E} {
 			currId := tileId + int(vec)
 			if currId < 0 || currId >= NumberOfTiles ||
@@ -225,11 +225,11 @@ func (b *Board) AvailableMoves(tileId int) map[int]Move {
 				(tileId%8 == 0 && vec == N+W) {
 				continue
 			}
-			if vec == N+N && (skipJump || tileId/8 != 6 || b.TileAt(currId).Piece.Team() != None) {
+			if vec == N+N && (skipTwoStep || tileId/8 != 6 || b.TileAt(currId).Piece.Team() != None) {
 				continue
 			}
 			if vec == N && b.TileAt(currId).Piece.Team() != None {
-				skipJump = true
+				skipTwoStep = true
 				continue
 			}
 			if vec == N+E || vec == N+W {
@@ -240,7 +240,7 @@ func (b *Board) AvailableMoves(tileId int) map[int]Move {
 			}
 
 			if vec == N+N {
-				moves[currId] = PawnJump
+				moves[currId] = PawnTwoStep
 			} else {
 				moves[currId] = Advance
 			}
@@ -282,7 +282,7 @@ func (b *Board) Debug(activeId int) string {
 			switch move {
 			case Attack:
 				buffer.WriteString(checkerIt(fmt.Sprintf("\033[31m %s \033[0m", tile.Piece)))
-			case Advance, PawnJump:
+			case Advance, PawnTwoStep:
 				buffer.WriteString(checkerIt(fmt.Sprintf("\033[34m %s \033[0m", "·")))
 			default:
 				log.Fatalf("unknown move %v", move)

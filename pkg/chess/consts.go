@@ -8,7 +8,7 @@ type Move int
 
 const (
 	Advance Move = iota
-	PawnJump
+	PawnTwoStep
 
 	Attack
 )
