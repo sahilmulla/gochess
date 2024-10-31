@@ -12,6 +12,7 @@ const (
 
 	Attack
 	EnPassantAttack
+	EnPassantCapture
 )
 
 type Team byte

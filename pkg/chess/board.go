@@ -34,7 +34,7 @@ func (b *Board) Move(from, to int) (*Piece, error) {
 	moves := b.AvailableMoves(from)
 
 	m, has := moves[to]
-	if !has {
+	if !has || m == EnPassantCapture {
 		return nil, errors.New("illegal move")
 	}
 
@@ -209,6 +209,7 @@ func (b *Board) AvailableMoves(tileId int) map[int]Move {
 					moves[currId] = Attack
 				} else if currId == b.enPassantInfo.PassingTileId {
 					moves[currId] = EnPassantAttack
+					moves[currId+int(N)] = EnPassantCapture
 				}
 				continue
 			}
@@ -246,6 +247,7 @@ func (b *Board) AvailableMoves(tileId int) map[int]Move {
 					moves[currId] = Attack
 				} else if currId == b.enPassantInfo.PassingTileId {
 					moves[currId] = EnPassantAttack
+					moves[currId+int(S)] = EnPassantCapture
 				}
 				continue
 			}
@@ -291,7 +293,7 @@ func (b *Board) Debug(activeId int) string {
 
 		if move, has := moves[tileId]; has {
 			switch move {
-			case Attack:
+			case Attack, EnPassantCapture:
 				buffer.WriteString(checkerIt(fmt.Sprintf("\033[31m %s \033[0m", tile.Piece)))
 			case EnPassantAttack:
 				buffer.WriteString(checkerIt(fmt.Sprintf("\033[31m %s \033[0m", "*")))
@@ -303,12 +305,9 @@ func (b *Board) Debug(activeId int) string {
 		} else {
 			if tileId == activeId {
 				buffer.WriteString(checkerIt(fmt.Sprintf("\033[32m %s \033[0m", tile.Piece)))
-			} else if tileId == b.enPassantInfo.CaptureTileId {
-				buffer.WriteString(checkerIt(fmt.Sprintf("\033[31m %s \033[0m", tile.Piece)))
 			} else {
 				buffer.WriteString(checkerIt(fmt.Sprintf(" %s ", tile.Piece)))
 			}
-
 		}
 
 		if tileId%8 == 7 && tileId < 8*7 {
