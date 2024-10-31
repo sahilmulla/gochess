@@ -207,9 +207,9 @@ func (b *Board) AvailableMoves(tileId int) map[int]Move {
 			if vec == S+E || vec == S+W {
 				if other := b.TileAt(currId).Piece.Team(); other != None && other != tile.Piece.Team() {
 					moves[currId] = Attack
-				} else if currId == b.enPassantInfo.PassingTileId {
+				} else if currId == b.enPassantInfo.PassingTileId && b.TileAt(b.enPassantInfo.CaptureTileId).Piece.Team() != tile.Piece.Team() {
 					moves[currId] = EnPassantAttack
-					moves[currId+int(N)] = EnPassantCapture
+					moves[b.enPassantInfo.CaptureTileId] = EnPassantCapture
 				}
 				continue
 			}
@@ -245,9 +245,9 @@ func (b *Board) AvailableMoves(tileId int) map[int]Move {
 			if vec == N+E || vec == N+W {
 				if other := b.TileAt(currId).Piece.Team(); other != None && other != tile.Piece.Team() {
 					moves[currId] = Attack
-				} else if currId == b.enPassantInfo.PassingTileId {
+				} else if currId == b.enPassantInfo.PassingTileId && b.TileAt(b.enPassantInfo.PassingTileId).Piece.Team() != tile.Piece.Team() {
 					moves[currId] = EnPassantAttack
-					moves[currId+int(S)] = EnPassantCapture
+					moves[b.enPassantInfo.CaptureTileId] = EnPassantCapture
 				}
 				continue
 			}
