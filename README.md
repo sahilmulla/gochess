@@ -1,7 +1,7 @@
 ## Starting Board
 
-![starting board](./starting_board.png)
+<img alt="starting board" src="./starting_board.png" width=300 />
 
 ## Move Preview
 
-![move preview](./move_preview.png)
+<img alt="move preview" src="./move_preview.png" width=300 />
