@@ -7,21 +7,27 @@ import (
 	"log"
 )
 
-type Log struct {
+type MoveLog struct {
 	From, To        int
 	Moved, Captured Piece
 	Team            Team
+	MoveType        Move
 }
 
 type EnPassantInfo struct {
 	PassingTileId, CaptureTileId int
 }
 
+type CastleInfo struct {
+	ks, qs map[Team]bool
+}
+
 type Board struct {
 	Tiles         []Tile
 	Next          Team
-	MoveLog       []Log
+	MoveLog       []MoveLog
 	enPassantInfo EnPassantInfo
+	castleInfo    CastleInfo
 }
 
 func (b *Board) Move(from, to int) (*Piece, error) {
@@ -40,7 +46,11 @@ func (b *Board) Move(from, to int) (*Piece, error) {
 
 	captured := b.Tiles[to].Piece
 
-	b.Tiles[to] = b.Tiles[from]
+	if !(m == KingSideCastle || m == QueenSideCastle) {
+		b.Tiles[to] = b.Tiles[from]
+	} else {
+		b.Tiles[to] = Tile{Piece: EmptyPiece}
+	}
 
 	b.Tiles[from] = Tile{Piece: EmptyPiece}
 
@@ -59,7 +69,34 @@ func (b *Board) Move(from, to int) (*Piece, error) {
 		b.enPassantInfo = EnPassantInfo{CaptureTileId: -1, PassingTileId: -1}
 	}
 
-	b.MoveLog = append(b.MoveLog, Log{From: from, To: to, Moved: toMove, Captured: captured, Team: b.Next})
+	if toMove == BlackKing || toMove == WhiteKing || m == KingSideCastle || m == QueenSideCastle {
+		b.castleInfo.ks[toMove.Team()] = true
+		b.castleInfo.qs[toMove.Team()] = true
+	} else if toMove == BlackRook && from == 0 || toMove == WhiteRook && from == 56 {
+		b.castleInfo.qs[toMove.Team()] = true
+	} else if toMove == BlackRook && from == 7 || toMove == WhiteRook && from == 63 {
+		b.castleInfo.ks[toMove.Team()] = true
+	}
+
+	if m == KingSideCastle {
+		if captured == WhiteRook || captured == BlackRook {
+			captured, toMove = toMove, captured
+			from, to = to, from
+		}
+		b.Tiles[to+2] = Tile{Piece: captured}
+		b.Tiles[to+1] = Tile{Piece: toMove}
+		captured = EmptyPiece
+	} else if m == QueenSideCastle {
+		if captured == WhiteRook || captured == BlackRook {
+			captured, toMove = toMove, captured
+			from, to = to, from
+		}
+		b.Tiles[to-2] = Tile{Piece: captured}
+		b.Tiles[to-1] = Tile{Piece: toMove}
+		captured = EmptyPiece
+	}
+
+	b.MoveLog = append(b.MoveLog, MoveLog{From: from, To: to, Moved: toMove, Captured: captured, Team: b.Next, MoveType: m})
 
 	if b.Next == Black {
 		b.Next = White
@@ -93,6 +130,39 @@ func (b *Board) AvailableMoves(tileId int) map[int]Move {
 					break
 				}
 				moves[currId] = Advance
+			}
+		}
+
+		if tileId == 63 || tileId == 7 {
+			_, cantCastleDueToMove := b.castleInfo.ks[tile.Piece.Team()]
+
+			clearPathToCastle := true
+			if !cantCastleDueToMove {
+				if tile.Piece.Team() == White {
+					for i := 61; i < 63; i++ {
+						if b.TileAt(i).Piece != EmptyPiece {
+							clearPathToCastle = false
+							break
+						}
+					}
+				}
+
+				if tile.Piece.Team() == Black {
+					for i := 5; i < 7; i++ {
+						if b.TileAt(i).Piece != EmptyPiece {
+							clearPathToCastle = false
+							break
+						}
+					}
+				}
+			}
+
+			if !cantCastleDueToMove && clearPathToCastle {
+				if tile.Piece.Team() == White && b.TileAt(60).Piece == WhiteKing {
+					moves[60] = KingSideCastle
+				} else if tile.Piece.Team() == Black && b.TileAt(4).Piece == BlackKing {
+					moves[4] = KingSideCastle
+				}
 			}
 		}
 	}
@@ -142,6 +212,40 @@ func (b *Board) AvailableMoves(tileId int) map[int]Move {
 	}
 
 	if tile.Piece == WhiteKing || tile.Piece == BlackKing {
+		if tileId == 4 {
+			_, cantCastleDueToMove := b.castleInfo.ks[tile.Piece.Team()]
+
+			clearPathToCastle := true
+			if !cantCastleDueToMove {
+				if tile.Piece.Team() == White {
+					for i := 61; i < 63; i++ {
+						if b.TileAt(i).Piece != EmptyPiece {
+							clearPathToCastle = false
+							break
+						}
+					}
+				}
+
+				if tile.Piece.Team() == Black {
+					for i := 5; i < 7; i++ {
+						if b.TileAt(i).Piece != EmptyPiece {
+							clearPathToCastle = false
+							break
+						}
+					}
+				}
+			}
+
+			if !cantCastleDueToMove && clearPathToCastle {
+				if tile.Piece.Team() == White {
+					moves[63] = KingSideCastle
+				} else if tile.Piece.Team() == Black {
+					moves[7] = KingSideCastle
+				}
+			}
+
+		}
+
 		for _, vec := range []Vector{N, S, E, W, N + E, N + W, S + E, S + W} {
 			currId := tileId + int(vec)
 			if currId < 0 || currId >= NumberOfTiles || (currId%8 == 0 && (vec == E || vec == N+E || vec == S+E)) || (currId%8 == 7 && (vec == W || vec == N+W || vec == S+W)) {
@@ -274,7 +378,8 @@ func (b *Board) Debug(activeId int) string {
 	var buffer bytes.Buffer
 
 	buffer.WriteRune('\n')
-	fmt.Fprintf(&buffer, "%v \n", b.enPassantInfo)
+	fmt.Fprintf(&buffer, "%+v \n", b.enPassantInfo)
+	fmt.Fprintf(&buffer, "%+v \n", b.castleInfo)
 
 	moves := b.AvailableMoves(activeId)
 	fmt.Fprintln(&buffer, moves)
@@ -286,9 +391,9 @@ func (b *Board) Debug(activeId int) string {
 
 		checkerIt := func(s string) string {
 			if tileId/8%2^tileId%2 == 0 {
-				return fmt.Sprintf("\033[49m%s\033[0m", s)
+				return fmt.Sprintf("\033[100m%s\033[0m", s)
 			}
-			return fmt.Sprintf("\033[100m%s\033[0m", s)
+			return fmt.Sprintf("\033[49m%s\033[0m", s)
 		}
 
 		if move, has := moves[tileId]; has {
@@ -299,6 +404,8 @@ func (b *Board) Debug(activeId int) string {
 				buffer.WriteString(checkerIt(fmt.Sprintf("\033[31m %s \033[0m", "*")))
 			case Advance, PawnTwoStep:
 				buffer.WriteString(checkerIt(fmt.Sprintf("\033[34m %s \033[0m", "·")))
+			case KingSideCastle, QueenSideCastle:
+				buffer.WriteString(checkerIt(fmt.Sprintf("\033[34m %s \033[0m", tile.Piece)))
 			default:
 				log.Fatalf("unknown move %v", move)
 			}
@@ -325,6 +432,8 @@ func NewBoard(options ...BoardOption) *Board {
 		Next:          White,
 		enPassantInfo: EnPassantInfo{PassingTileId: -1, CaptureTileId: -1},
 	}
+
+	board.castleInfo = CastleInfo{ks: make(map[Team]bool), qs: make(map[Team]bool)}
 
 	board.Tiles = make([]Tile, NumberOfTiles)
 

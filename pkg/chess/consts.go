@@ -13,6 +13,9 @@ const (
 	Attack
 	EnPassantAttack
 	EnPassantCapture
+
+	KingSideCastle
+	QueenSideCastle
 )
 
 type Team byte
