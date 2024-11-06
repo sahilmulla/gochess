@@ -8,6 +8,7 @@ import (
 func main() {
 	b := chess.NewBoard(chess.WithStandardPlacement())
 	fmt.Println(b.Debug(-1))
+	italianGame()
 }
 
 func italianGame() {
