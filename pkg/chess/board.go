@@ -203,10 +203,6 @@ func (b *Board) AvailableMoves(tileId int) map[int]Move {
 					break
 				}
 				moves[currId] = Advance
-
-				if mod := currId % 8; mod == 0 || mod == 7 {
-					break
-				}
 			}
 		}
 	}
